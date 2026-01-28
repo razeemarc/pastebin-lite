@@ -8,6 +8,8 @@ export default function HomePage() {
   const [maxViews, setMaxViews] = useState("");
   const [resultUrl, setResultUrl] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   /* ---------------- Validation ---------------- */
 
@@ -33,7 +35,7 @@ export default function HomePage() {
     return "";
   }, [content, ttl, maxViews]);
 
-  const isDisabled = Boolean(validationError);
+  const isDisabled = Boolean(validationError) || isLoading;
 
   /* ---------------- Submit ---------------- */
 
@@ -41,6 +43,7 @@ export default function HomePage() {
     e.preventDefault();
     setError("");
     setResultUrl("");
+    setCopied(false);
 
     if (validationError) {
       setError(validationError);
@@ -52,6 +55,8 @@ export default function HomePage() {
     if (maxViews) body.max_views = Number(maxViews);
 
     try {
+      setIsLoading(true);
+
       const res = await fetch("/api/pastes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,7 +76,18 @@ export default function HomePage() {
       setMaxViews("");
     } catch {
       setError("Network error");
+    } finally {
+      setIsLoading(false);
     }
+  }
+
+  /* ---------------- Copy ---------------- */
+
+  async function handleCopy() {
+    if (!resultUrl) return;
+    await navigator.clipboard.writeText(resultUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   /* ---------------- UI ---------------- */
@@ -79,7 +95,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-slate-950 flex items-center justify-center px-4 py-6">
       <div className="w-full max-w-3xl">
-        <h1 className="text-2xl sm:text-3xl font-bold text-sky-400 mb-6 text-center sm:text-left">
+        <h1 className="text-2xl sm:text-3xl font-bold text-sky-400 mb-6">
           Pastebin Lite
         </h1>
 
@@ -95,6 +111,7 @@ export default function HomePage() {
               placeholder="Paste your text here..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              disabled={isLoading}
             />
             <div className="flex justify-between text-xs mt-1 text-slate-400">
               <span>{content.length} / 10000</span>
@@ -111,8 +128,7 @@ export default function HomePage() {
                          focus:outline-none focus:ring-2 focus:ring-sky-500"
               value={ttl}
               onChange={(e) => setTtl(e.target.value)}
-              min={10}
-              max={604800}
+              disabled={isLoading}
             />
 
             <input
@@ -122,8 +138,7 @@ export default function HomePage() {
                          focus:outline-none focus:ring-2 focus:ring-sky-500"
               value={maxViews}
               onChange={(e) => setMaxViews(e.target.value)}
-              min={1}
-              max={1000}
+              disabled={isLoading}
             />
           </div>
 
@@ -131,14 +146,17 @@ export default function HomePage() {
           <button
             type="submit"
             disabled={isDisabled}
-            className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold transition
+            className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold flex items-center justify-center gap-2
               ${
                 isDisabled
                   ? "bg-slate-700 text-slate-400 cursor-not-allowed"
                   : "bg-sky-500 hover:bg-sky-400 text-slate-900"
               }`}
           >
-            Create Paste
+            {isLoading && (
+              <span className="h-4 w-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+            )}
+            {isLoading ? "Creating..." : "Create Paste"}
           </button>
         </form>
 
@@ -151,16 +169,23 @@ export default function HomePage() {
 
         {/* Result */}
         {resultUrl && (
-          <p className="mt-4 text-sm">
-            <span className="text-slate-400">Paste created:</span>{" "}
+          <div className="mt-4 bg-slate-900 border border-slate-800 rounded-lg p-3 flex flex-col sm:flex-row gap-3 sm:items-center">
             <a
               href={resultUrl}
               target="_blank"
-              className="text-sky-400 underline break-all"
+              className="text-sky-400 underline break-all flex-1"
             >
               {resultUrl}
             </a>
-          </p>
+
+            <button
+              onClick={handleCopy}
+              className="px-4 py-1.5 rounded-md text-sm font-medium
+                         bg-slate-800 hover:bg-slate-700 text-slate-200"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
         )}
       </div>
     </main>
