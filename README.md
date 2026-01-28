@@ -69,4 +69,4 @@ This project uses **Prisma ORM** as the persistence layer, interfacing with a **
 - **Language**: TypeScript
 
 ---
-Made with ❤️ by Ezra
+Made with ❤️ by Razeema
