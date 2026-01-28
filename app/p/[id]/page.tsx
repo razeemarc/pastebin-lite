@@ -7,6 +7,7 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+
 export default async function PastePage({ params }: PageProps) {
   const { id } = await params;
 
