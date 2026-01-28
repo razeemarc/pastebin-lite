@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = params.id;
+  const { id } = await params; // ✅ FIX
 
   if (!id) {
     return NextResponse.json(
@@ -24,7 +24,6 @@ export async function GET(
     }
   }
 
-  // 🔹 Fetch paste
   const paste = await prisma.paste.findUnique({
     where: { id },
   });
@@ -36,7 +35,7 @@ export async function GET(
     );
   }
 
-  // 🔹 Check TTL
+  // 🔹 TTL check
   if (paste.expiresAt && paste.expiresAt.getTime() <= now) {
     return NextResponse.json(
       { error: "Paste not found" },
@@ -44,7 +43,7 @@ export async function GET(
     );
   }
 
-  // 🔹 Check view limit
+  // 🔹 View limit check
   if (paste.maxViews !== null && paste.viewCount >= paste.maxViews) {
     return NextResponse.json(
       { error: "Paste not found" },
@@ -52,7 +51,7 @@ export async function GET(
     );
   }
 
-  // 🔹 Atomically increment view count
+  // 🔹 Increment view count (atomic)
   await prisma.paste.update({
     where: { id },
     data: {
